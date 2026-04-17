@@ -17,11 +17,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Download apktool
+      # Download apktool (auto latest dari GitHub)
       - name: Install apktool
-        - name: Install apktool
         run: |
-        wget https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar -O apktool.jar
+          LATEST=$(curl -s https://api.github.com/repos/iBotPeaches/Apktool/releases/latest \
+            | grep tag_name | cut -d '"' -f4 | tr -d 'v')
+          echo "Apktool version: $LATEST"
+          wget "https://github.com/iBotPeaches/Apktool/releases/download/v${LATEST}/apktool_${LATEST}.jar" \
+            -O apktool.jar
+          echo "✅ apktool downloaded"
 
       # Build APK + log
       - name: Recompile APK
@@ -55,13 +59,13 @@ jobs:
 
           mv output-unsigned.apk output.apk
 
-      # Align APK (biar proper)
+      # Align APK
       - name: Zipalign
         if: success()
         run: |
           zipalign -v 4 output.apk final.apk
 
-      # Upload log
+      # Upload build log (selalu diupload)
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,7 +73,7 @@ jobs:
           name: build-log
           path: build.log
 
-      # Upload APK
+      # Upload APK hasil build
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4

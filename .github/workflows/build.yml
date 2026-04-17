@@ -7,17 +7,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Ambil repo
       - uses: actions/checkout@v4
 
-      # Install Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # Download apktool (auto latest dari GitHub)
       - name: Install apktool
         run: |
           LATEST=$(curl -s https://api.github.com/repos/iBotPeaches/Apktool/releases/latest \
@@ -27,7 +24,13 @@ jobs:
             -O apktool.jar
           echo "✅ apktool downloaded"
 
-      # Build APK + log
+      # Install zipalign
+      - name: Install zipalign
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y zipalign
+          echo "✅ zipalign ready"
+
       - name: Recompile APK
         run: |
           java -jar apktool.jar b . -o output-unsigned.apk 2>&1 | tee build.log
@@ -36,14 +39,11 @@ jobs:
           echo "=============================="
           echo "🔥 BUILD ERROR SUMMARY"
           echo "=============================="
-
           grep -i "error" build.log | head -20 || echo "No critical errors"
-
           echo "=============================="
 
           exit $BUILD_EXIT
 
-      # Sign APK (debug key)
       - name: Sign APK
         if: success()
         run: |
@@ -59,13 +59,11 @@ jobs:
 
           mv output-unsigned.apk output.apk
 
-      # Align APK
       - name: Zipalign
         if: success()
         run: |
           zipalign -v 4 output.apk final.apk
 
-      # Upload build log (selalu diupload)
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
@@ -73,7 +71,6 @@ jobs:
           name: build-log
           path: build.log
 
-      # Upload APK hasil build
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" android:compileSdkVersion="34" android:compileSdkVersionCodename="14" package="com.mio.plugin.renderer.purplevk2500d.r27.sdk30.a6xx" platformBuildVersionCode="34" platformBuildVersionName="14">
+    <application android:allowBackup="true" android:extractNativeLibs="true" android:hardwareAccelerated="true" android:largeHeap="true" android:vmSafeMode="false" android:icon="@drawable/img_app" android:label="@string/app_name" android:supportsRtl="true">
+        <activity android:exported="true" android:name="com.mio.plugin.renderer.MainActivity" android:hardwareAccelerated="true" android:windowSoftInputMode="stateAlwaysHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <meta-data android:name="fclPlugin" android:value="true"/>
+        <meta-data android:name="driver" android:value="PurpleVK 25.0.0-devel r27-sdk30 a6xx [VinzzOpt]"/>
+        <!-- Performance env vars - read by some FCL/Zalith forks -->
+        <meta-data android:name="MESA_VK_ENABLE_SUBMIT_THREAD" android:value="true"/>
+        <meta-data android:name="TU_DEBUG" android:value="hiprio,forcebin,prefetch"/>
+        <meta-data android:name="mesa:TU_DEBUG" android:value="hiprio,forcebin,prefetch"/>
+        <meta-data android:name="mesa:MESA_VK_ENABLE_SUBMIT_THREAD" android:value="true"/>
+        <meta-data android:name="mesa:MESA_NO_ERROR" android:value="1"/>
+        <meta-data android:name="mesa:TU_GMEM" android:value="32768"/>
+        <meta-data android:name="mesa:FD_DEV_FEATURES" android:value="0xFFFFFFFF"/>
+    </application>
+</manifest>

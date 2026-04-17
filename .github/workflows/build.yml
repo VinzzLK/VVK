@@ -1,0 +1,72 @@
+name: Build APK
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout
+      - uses: actions/checkout@v4
+
+      # Java
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Build APK + log
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug 2>&1 | tee build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+
+          echo "=============================="
+          echo "🔥 BUILD ERROR SUMMARY"
+          echo "=============================="
+
+          grep -i "error" build.log | grep -v "deprecated\|warning" | head -20 || echo "No critical errors"
+
+          echo "=============================="
+
+          exit $BUILD_EXIT
+
+      # Sign APK
+      - name: Sign APK
+        if: success()
+        run: |
+          APK=$(find . -name "*debug.apk" | head -n 1)
+          echo "APK found: $APK"
+
+          jarsigner -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -keypass android \
+            "$APK" androiddebugkey
+
+      # Find APK
+      - name: Find APK
+        if: always()
+        run: find . -name "*.apk" || echo "No APK found"
+
+      # Upload log
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+
+      # Upload APK
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Signed-APK
+          path: "**/*debug.apk"

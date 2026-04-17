@@ -1,4 +1,4 @@
-name: Build APK
+name: Rebuild APK (apktool)
 
 on: [push, workflow_dispatch]
 
@@ -7,53 +7,58 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout
+      # Ambil repo
       - uses: actions/checkout@v4
 
-      # Java
+      # Install Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # Android SDK
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # Download apktool
+      - name: Install apktool
+        run: |
+          wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.9.3.jar -O apktool.jar
 
       # Build APK + log
-      - name: Build APK
+      - name: Recompile APK
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug 2>&1 | tee build.log
+          java -jar apktool.jar b . -o output-unsigned.apk 2>&1 | tee build.log
           BUILD_EXIT=${PIPESTATUS[0]}
 
           echo "=============================="
           echo "🔥 BUILD ERROR SUMMARY"
           echo "=============================="
 
-          grep -i "error" build.log | grep -v "deprecated\|warning" | head -20 || echo "No critical errors"
+          grep -i "error" build.log | head -20 || echo "No critical errors"
 
           echo "=============================="
 
           exit $BUILD_EXIT
 
-      # Sign APK
+      # Sign APK (debug key)
       - name: Sign APK
         if: success()
         run: |
-          APK=$(find . -name "*debug.apk" | head -n 1)
-          echo "APK found: $APK"
+          keytool -genkey -v -keystore debug.keystore \
+            -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android,O=Android,C=US"
 
-          jarsigner -keystore ~/.android/debug.keystore \
+          jarsigner -keystore debug.keystore \
             -storepass android \
             -keypass android \
-            "$APK" androiddebugkey
+            output-unsigned.apk androiddebugkey
 
-      # Find APK
-      - name: Find APK
-        if: always()
-        run: find . -name "*.apk" || echo "No APK found"
+          mv output-unsigned.apk output.apk
+
+      # Align APK (biar proper)
+      - name: Zipalign
+        if: success()
+        run: |
+          zipalign -v 4 output.apk final.apk
 
       # Upload log
       - name: Upload build log
@@ -68,5 +73,5 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Signed-APK
-          path: "**/*debug.apk"
+          name: Recompiled-APK
+          path: final.apk

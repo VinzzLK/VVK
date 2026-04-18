@@ -24,12 +24,12 @@ jobs:
             -O apktool.jar
           echo "✅ apktool downloaded"
 
-      # Install zipalign
-      - name: Install zipalign
+      # Install Android Build Tools (zipalign + apksigner)
+      - name: Install Android Build Tools
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y zipalign
-          echo "✅ zipalign ready"
+          sudo apt-get install -y zipalign apksigner
+          echo "✅ zipalign & apksigner ready"
 
       - name: Recompile APK
         run: |
@@ -44,7 +44,8 @@ jobs:
 
           exit $BUILD_EXIT
 
-      - name: Sign APK
+      # Generate debug keystore
+      - name: Generate Keystore
         if: success()
         run: |
           keytool -genkey -v -keystore debug.keystore \
@@ -52,17 +53,26 @@ jobs:
             -keypass android -keyalg RSA -keysize 2048 \
             -validity 10000 -dname "CN=Android,O=Android,C=US"
 
-          jarsigner -keystore debug.keystore \
-            -storepass android \
-            -keypass android \
-            output-unsigned.apk androiddebugkey
-
-          mv output-unsigned.apk output.apk
-
+      # Zipalign SEBELUM sign (wajib urutannya)
       - name: Zipalign
         if: success()
         run: |
-          zipalign -v 4 output.apk final.apk
+          zipalign -v 4 output-unsigned.apk output-aligned.apk
+
+      # Sign pakai apksigner (v1 + v2 + v3 scheme)
+      - name: Sign APK (apksigner)
+        if: success()
+        run: |
+          apksigner sign \
+            --ks debug.keystore \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out final.apk \
+            output-aligned.apk
+          
+          echo "✅ APK signed"
+          apksigner verify --verbose final.apk
 
       - name: Upload build log
         if: always()
